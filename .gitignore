@@ -22,3 +22,24 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Local databases and backups
+backend/*.db
+backend/*.db-*
+
+# Python virtual environments
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Frontend dependencies and build output
+node_modules/
+dist/

@@ -1,1266 +1,638 @@
-import { useEffect, useState } from "react";
 
-import {
-    login,
-    getBooks,
-    borrowBook,
-    returnBook,
-    getUserBooks,
-    getSeats,
-    reserveSeat,
-    releaseSeat
-} from "./api";
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import { login, getSeats, reserveSeat, releaseSeat } from "./api";
 import "./App.css";
 
-
-function App() {
-
-    // =====================================================
-    // AUTHENTICATION
-    // =====================================================
-
-    const [user, setUser] = useState(null);
-
-    const [email, setEmail] = useState("student@library.com");
-    const [password, setPassword] = useState("1234");
-
-    const [loginError, setLoginError] = useState("");
-
-
-    // =====================================================
-    // DASHBOARD
-    // =====================================================
-
-    const [activePage, setActivePage] = useState("dashboard");
-
-
-    // =====================================================
-    // BOOKS
-    // =====================================================
-
-    const [books, setBooks] = useState([]);
-    const [search, setSearch] = useState("");
-
-
-    // =====================================================
-    // BORROWED BOOKS
-    // =====================================================
-
-    const [myBooks, setMyBooks] = useState([]);
-
-
-    // =====================================================
-    // SEATS
-    // =====================================================
-
-    const [seats, setSeats] = useState([]);
-
-
-    // =====================================================
-    // GENERAL
-    // =====================================================
-
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState("");
-    const [error, setError] = useState("");
-
-
-    // =====================================================
-    // LOAD DATA AFTER LOGIN
-    // =====================================================
-
-    useEffect(() => {
-
-        if (!user) {
-            return;
-        }
-
-        loadAllData();
-
-    }, [user]);
-
-
-    async function loadAllData() {
-
-        try {
-
-            setLoading(true);
-            setError("");
-
-            const [
-                booksData,
-                seatsData,
-                borrowedData
-            ] = await Promise.all([
-                getBooks(),
-                getSeats(),
-                getUserBooks(user.id)
-            ]);
-
-            setBooks(booksData);
-            setSeats(seatsData);
-            setMyBooks(borrowedData);
-
-        } catch (err) {
-
-            setError(err.message);
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    }
-
-
-    // =====================================================
-    // LOGIN
-    // =====================================================
-
-    async function handleLogin(event) {
-
-        event.preventDefault();
-
-        try {
-
-            setLoginError("");
-
-            const loggedInUser = await login(
-                email,
-                password
-            );
-
-            setUser(loggedInUser);
-
-        } catch (err) {
-
-            setLoginError(err.message);
-
-        }
-    }
-
-
-    // =====================================================
-    // LOGOUT
-    // =====================================================
-
-    function handleLogout() {
-
-        setUser(null);
-        setActivePage("dashboard");
-        setBooks([]);
-        setSeats([]);
-        setMyBooks([]);
-        setMessage("");
-        setError("");
-
-    }
-
-
-    // =====================================================
-    // SEARCH BOOKS
-    // =====================================================
-
-    async function handleSearch(value) {
-
-        setSearch(value);
-
-        try {
-
-            const data = await getBooks(value);
-
-            setBooks(data);
-
-        } catch (err) {
-
-            setError(err.message);
-
-        }
-    }
-
-
-    // =====================================================
-    // BORROW
-    // =====================================================
-
-    async function handleBorrow(bookId) {
-
-        try {
-
-            setError("");
-            setMessage("");
-
-            await borrowBook(
-                bookId,
-                user.id
-            );
-
-            setMessage("Book borrowed successfully!");
-
-            await loadAllData();
-
-        } catch (err) {
-
-            setError(err.message);
-
-        }
-    }
-
-
-    // =====================================================
-    // RETURN
-    // =====================================================
-
-    async function handleReturn(bookId) {
-
-        try {
-
-            setError("");
-            setMessage("");
-
-            await returnBook(
-                bookId,
-                user.id
-            );
-
-            setMessage("Book returned successfully!");
-
-            await loadAllData();
-
-        } catch (err) {
-
-            setError(err.message);
-
-        }
-    }
-
-
-    // =====================================================
-    // RESERVE SEAT
-    // =====================================================
-
-    async function handleReserveSeat(seatId) {
-
-        try {
-
-            setError("");
-            setMessage("");
-
-            await reserveSeat(
-                seatId,
-                user.id
-            );
-
-            setMessage("Seat reserved successfully!");
-
-            await loadAllData();
-
-        } catch (err) {
-
-            setError(err.message);
-
-        }
-    }
-
-
-    // =====================================================
-    // RELEASE SEAT
-    // =====================================================
-
-    async function handleReleaseSeat(seatId) {
-
-        try {
-
-            setError("");
-            setMessage("");
-
-            await releaseSeat(
-                seatId,
-                user.id
-            );
-
-            setMessage("Seat released successfully!");
-
-            await loadAllData();
-
-        } catch (err) {
-
-            setError(err.message);
-
-        }
-    }
-
-
-    // =====================================================
-    // LOGIN SCREEN
-    // =====================================================
-
-    if (!user) {
-
-        return (
-
-            <div className="login-page">
-
-                <div className="login-card">
-
-                    <div className="logo-large">
-                        📚
-                    </div>
-
-                    <h1>Smart Library</h1>
-
-                    <p className="login-subtitle">
-                        Your intelligent library management system
-                    </p>
-
-
-                    <form onSubmit={handleLogin}>
-
-                        <label>
-                            Email
-                        </label>
-
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) =>
-                                setEmail(e.target.value)
-                            }
-                            placeholder="Enter your email"
-                        />
-
-
-                        <label>
-                            Password
-                        </label>
-
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) =>
-                                setPassword(e.target.value)
-                            }
-                            placeholder="Enter your password"
-                        />
-
-
-                        {loginError && (
-
-                            <div className="error-message">
-                                {loginError}
-                            </div>
-
-                        )}
-
-
-                        <button
-                            className="primary-button login-button"
-                            type="submit"
-                        >
-                            Login
-                        </button>
-
-                    </form>
-
-
-                    <div className="demo-login">
-
-                        <strong>Demo account</strong>
-
-                        <span>
-                            student@library.com
-                        </span>
-
-                        <span>
-                            Password: 1234
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        );
-    }
-
-
-    // =====================================================
-    // STATISTICS
-    // =====================================================
-
-    const totalBooks = books.length;
-
-    const availableBooks = books.filter(
-        book => book.available
-    ).length;
-
-    const freeSeats = seats.filter(
-        seat => !seat.occupied
-    ).length;
-
-
-    // =====================================================
-    // DASHBOARD
-    // =====================================================
-
-    function Dashboard() {
-
-        return (
-
-            <div>
-
-                <div className="welcome">
-
-                    <div>
-
-                        <h1>
-                            Good evening, {user.name.split(" ")[0]} 👋
-                        </h1>
-
-                        <p>
-                            Here's what's happening in your library.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div className="stats-grid">
-
-                    <div className="stat-card">
-
-                        <div className="stat-icon">
-                            📚
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Total Books
-                            </span>
-
-                            <strong>
-                                {totalBooks}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="stat-card">
-
-                        <div className="stat-icon">
-                            ✅
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Available Books
-                            </span>
-
-                            <strong>
-                                {availableBooks}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="stat-card">
-
-                        <div className="stat-icon">
-                            💺
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Free Seats
-                            </span>
-
-                            <strong>
-                                {freeSeats}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="stat-card">
-
-                        <div className="stat-icon">
-                            📖
-                        </div>
-
-                        <div>
-
-                            <span>
-                                My Books
-                            </span>
-
-                            <strong>
-                                {myBooks.length}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div className="quick-grid">
-
-                    <button
-                        className="quick-card"
-                        onClick={() => setActivePage("books")}
-                    >
-
-                        <span>📚</span>
-
-                        <div>
-
-                            <strong>
-                                Browse Books
-                            </strong>
-
-                            <p>
-                                Search and borrow books
-                            </p>
-
-                        </div>
-
-                    </button>
-
-
-                    <button
-                        className="quick-card"
-                        onClick={() => setActivePage("seats")}
-                    >
-
-                        <span>💺</span>
-
-                        <div>
-
-                            <strong>
-                                Find a Seat
-                            </strong>
-
-                            <p>
-                                Reserve your library seat
-                            </p>
-
-                        </div>
-
-                    </button>
-
-
-                    <button
-                        className="quick-card"
-                        onClick={() => setActivePage("borrowed")}
-                    >
-
-                        <span>📖</span>
-
-                        <div>
-
-                            <strong>
-                                My Borrowed Books
-                            </strong>
-
-                            <p>
-                                View books you currently have
-                            </p>
-
-                        </div>
-
-                    </button>
-
-                </div>
-
-
-                <div className="section-card">
-
-                    <div className="section-header">
-
-                        <div>
-
-                            <h2>
-                                Recently Available
-                            </h2>
-
-                            <p>
-                                Books currently available to borrow
-                            </p>
-
-                        </div>
-
-                        <button
-                            className="text-button"
-                            onClick={() => setActivePage("books")}
-                        >
-                            View all →
-                        </button>
-
-                    </div>
-
-
-                    <div className="book-list">
-
-                        {books
-                            .filter(book => book.available)
-                            .slice(0, 4)
-                            .map(book => (
-
-                                <BookRow
-                                    key={book.id}
-                                    book={book}
-                                    onBorrow={handleBorrow}
-                                />
-
-                            ))}
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        );
-    }
-
-
-    // =====================================================
-    // BOOKS PAGE
-    // =====================================================
-
-    function BooksPage() {
-
-        return (
-
-            <div>
-
-                <div className="page-header">
-
-                    <div>
-
-                        <h1>
-                            Library Books
-                        </h1>
-
-                        <p>
-                            Search, explore and borrow books.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div className="search-box">
-
-                    <span>
-                        🔍
-                    </span>
-
-                    <input
-                        value={search}
-                        onChange={(e) =>
-                            handleSearch(e.target.value)
-                        }
-                        placeholder="Search by title, author or category..."
-                    />
-
-                </div>
-
-
-                <div className="book-grid">
-
-                    {books.map(book => (
-
-                        <div
-                            className="book-card"
-                            key={book.id}
-                        >
-
-                            <div className="book-cover">
-                                📖
-                            </div>
-
-
-                            <div className="book-info">
-
-                                <span className="category">
-                                    {book.category}
-                                </span>
-
-                                <h3>
-                                    {book.title}
-                                </h3>
-
-                                <p>
-                                    {book.author}
-                                </p>
-
-                                <small>
-                                    ISBN: {book.isbn || "N/A"}
-                                </small>
-
-
-                                <div className="book-footer">
-
-                                    <span
-                                        className={
-                                            book.available
-                                                ? "available"
-                                                : "unavailable"
-                                        }
-                                    >
-
-                                        {book.available
-                                            ? "Available"
-                                            : "Borrowed"}
-
-                                    </span>
-
-
-                                    {book.available && (
-
-                                        <button
-                                            className="small-button"
-                                            onClick={() =>
-                                                handleBorrow(book.id)
-                                            }
-                                        >
-                                            Borrow
-                                        </button>
-
-                                    )}
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    ))}
-
-                </div>
-
-            </div>
-
-        );
-    }
-
-
-    // =====================================================
-    // SEATS PAGE
-    // =====================================================
-
-    function SeatsPage() {
-
-        return (
-
-            <div>
-
-                <div className="page-header">
-
-                    <div>
-
-                        <h1>
-                            Library Seats
-                        </h1>
-
-                        <p>
-                            Choose a free seat and start studying.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div className="seat-legend">
-
-                    <div>
-                        <span className="legend free"></span>
-                        Free
-                    </div>
-
-                    <div>
-                        <span className="legend occupied"></span>
-                        Occupied
-                    </div>
-
-                    <div>
-                        <span className="legend mine"></span>
-                        My Seat
-                    </div>
-
-                </div>
-
-
-                <div className="seat-room">
-
-                    <div className="room-title">
-                        📚 STUDY AREA
-                    </div>
-
-
-                    <div className="seat-grid">
-
-                        {seats.map(seat => {
-
-                            const isMine =
-                                seat.user_id === user.id;
-
-                            return (
-
-                                <button
-                                    key={seat.id}
-                                    className={`seat ${
-                                        !seat.occupied
-                                            ? "seat-free"
-                                            : isMine
-                                                ? "seat-mine"
-                                                : "seat-occupied"
-                                    }`}
-                                    onClick={() => {
-
-                                        if (!seat.occupied) {
-
-                                            handleReserveSeat(
-                                                seat.id
-                                            );
-
-                                        } else if (isMine) {
-
-                                            handleReleaseSeat(
-                                                seat.id
-                                            );
-
-                                        }
-
-                                    }}
-                                >
-
-                                    <span>
-                                        💺
-                                    </span>
-
-                                    <strong>
-                                        {seat.seat_number}
-                                    </strong>
-
-
-                                    <small>
-
-                                        {!seat.occupied
-                                            ? "Free"
-                                            : isMine
-                                                ? "Your seat"
-                                                : "Occupied"}
-
-                                    </small>
-
-                                </button>
-
-                            );
-
-                        })}
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        );
-    }
-
-
-    // =====================================================
-    // BORROWED PAGE
-    // =====================================================
-
-    function BorrowedPage() {
-
-        return (
-
-            <div>
-
-                <div className="page-header">
-
-                    <div>
-
-                        <h1>
-                            My Books
-                        </h1>
-
-                        <p>
-                            Books currently borrowed by you.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                {myBooks.length === 0 ? (
-
-                    <div className="empty-state">
-
-                        <div>
-                            📚
-                        </div>
-
-                        <h2>
-                            No borrowed books
-                        </h2>
-
-                        <p>
-                            You haven't borrowed any books yet.
-                        </p>
-
-                        <button
-                            className="primary-button"
-                            onClick={() =>
-                                setActivePage("books")
-                            }
-                        >
-                            Browse Books
-                        </button>
-
-                    </div>
-
-                ) : (
-
-                    <div className="borrowed-list">
-
-                        {myBooks.map(book => (
-
-                            <div
-                                className="borrowed-card"
-                                key={book.borrow_id}
-                            >
-
-                                <div className="borrowed-icon">
-                                    📖
-                                </div>
-
-                                <div className="borrowed-info">
-
-                                    <h3>
-                                        {book.title}
-                                    </h3>
-
-                                    <p>
-                                        {book.author}
-                                    </p>
-
-                                    <span>
-                                        {book.category}
-                                    </span>
-
-                                </div>
-
-                                <button
-                                    className="return-button"
-                                    onClick={() =>
-                                        handleReturn(book.book_id)
-                                    }
-                                >
-                                    Return Book
-                                </button>
-
-                            </div>
-
-                        ))}
-
-                    </div>
-
-                )}
-
-            </div>
-
-        );
-    }
-
-
-    // =====================================================
-    // BOOK ROW
-    // =====================================================
-
-    function BookRow({ book, onBorrow }) {
-
-        return (
-
-            <div className="book-row">
-
-                <div className="row-book-icon">
-                    📖
-                </div>
-
-                <div className="row-book-info">
-
-                    <strong>
-                        {book.title}
-                    </strong>
-
-                    <span>
-                        {book.author}
-                    </span>
-
-                </div>
-
-                <span className="category">
-                    {book.category}
-                </span>
-
-                <button
-                    className="small-button"
-                    onClick={() =>
-                        onBorrow(book.id)
-                    }
-                >
-                    Borrow
-                </button>
-
-            </div>
-
-        );
-    }
-
-
-    // =====================================================
-    // MAIN APPLICATION
-    // =====================================================
-
-    return (
-
-        <div className="app">
-
-            {/* SIDEBAR */}
-
-            <aside className="sidebar">
-
-                <div className="brand">
-
-                    <div className="brand-icon">
-                        📚
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Smart Library
-                        </strong>
-
-                        <span>
-                            Management System
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <nav>
-
-                    <button
-                        className={
-                            activePage === "dashboard"
-                                ? "nav-item active"
-                                : "nav-item"
-                        }
-                        onClick={() =>
-                            setActivePage("dashboard")
-                        }
-                    >
-                        <span>🏠</span>
-                        Dashboard
-                    </button>
-
-
-                    <button
-                        className={
-                            activePage === "books"
-                                ? "nav-item active"
-                                : "nav-item"
-                        }
-                        onClick={() =>
-                            setActivePage("books")
-                        }
-                    >
-                        <span>📚</span>
-                        Books
-                    </button>
-
-
-                    <button
-                        className={
-                            activePage === "seats"
-                                ? "nav-item active"
-                                : "nav-item"
-                        }
-                        onClick={() =>
-                            setActivePage("seats")
-                        }
-                    >
-                        <span>💺</span>
-                        Seats
-                    </button>
-
-
-                    <button
-                        className={
-                            activePage === "borrowed"
-                                ? "nav-item active"
-                                : "nav-item"
-                        }
-                        onClick={() =>
-                            setActivePage("borrowed")
-                        }
-                    >
-                        <span>📖</span>
-                        My Books
-                    </button>
-
-                </nav>
-
-
-                <div className="sidebar-bottom">
-
-                    <div className="user-profile">
-
-                        <div className="avatar">
-                            {user.name.charAt(0).toUpperCase()}
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                {user.name}
-                            </strong>
-
-                            <span>
-                                Student
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        className="logout-button"
-                        onClick={handleLogout}
-                    >
-                        ↪ Logout
-                    </button>
-
-                </div>
-
-            </aside>
-
-
-            {/* MAIN CONTENT */}
-
-            <main className="main-content">
-
-                <header className="topbar">
-
-                    <div className="mobile-title">
-                        📚 Smart Library
-                    </div>
-
-                    <div className="topbar-right">
-
-                        <span>
-                            {new Date().toLocaleDateString(
-                                "en-IN",
-                                {
-                                    weekday: "long",
-                                    day: "numeric",
-                                    month: "long"
-                                }
-                            )}
-                        </span>
-
-                        <div className="top-avatar">
-                            {user.name.charAt(0).toUpperCase()}
-                        </div>
-
-                    </div>
-
-                </header>
-
-
-                <div className="content">
-
-                    {message && (
-
-                        <div className="success-message">
-                            ✅ {message}
-                        </div>
-
-                    )}
-
-
-                    {error && (
-
-                        <div className="error-message global-error">
-                            ⚠️ {error}
-                        </div>
-
-                    )}
-
-
-                    {loading ? (
-
-                        <div className="loading">
-                            Loading...
-                        </div>
-
-                    ) : (
-
-                        <>
-
-                            {activePage === "dashboard" && (
-                                <Dashboard />
-                            )}
-
-                            {activePage === "books" && (
-                                <BooksPage />
-                            )}
-
-                            {activePage === "seats" && (
-                                <SeatsPage />
-                            )}
-
-                            {activePage === "borrowed" && (
-                                <BorrowedPage />
-                            )}
-
-                        </>
-
-                    )}
-
-                </div>
-
-            </main>
-
-        </div>
-
-    );
+const SEAT_LIMIT = 2;
+const REFRESH_INTERVAL = 3000;
+
+function getSeatId(seat) {
+  return seat.id ?? seat.seat_id ?? seat.seat_number;
 }
 
+function getSeatLabel(seat, index) {
+  return seat.seat_number ?? seat.name ?? getSeatId(seat) ?? index + 1;
+}
+
+function isPhysicallyOccupied(seat) {
+  return Boolean(seat.physically_occupied ?? seat.occupied);
+}
+
+function isReserved(seat) {
+  return Boolean(seat.is_reserved ?? seat.user_id);
+}
+
+function isUnavailable(seat) {
+  return isPhysicallyOccupied(seat) || isReserved(seat);
+}
+
+function App() {
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("library_user") || "null");
+    } catch {
+      return null;
+    }
+  });
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [seats, setSeats] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [busySeat, setBusySeat] = useState(null);
+
+  const previousOccupancy = useRef(null);
+  const toastTimer = useRef(null);
+
+  const notify = useCallback((title, message, type = "info") => {
+    const notification = {
+      id: `${Date.now()}-${Math.random()}`,
+      title,
+      message,
+      type,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    setNotifications((previous) =>
+      [notification, ...previous].slice(0, 8)
+    );
+
+    setToast(notification);
+
+    if (toastTimer.current) {
+      clearTimeout(toastTimer.current);
+    }
+
+    toastTimer.current = setTimeout(() => {
+      setToast(null);
+      toastTimer.current = null;
+    }, 4500);
+  }, []);
+
+  const refreshSeats = useCallback(async () => {
+    try {
+      const response = await getSeats();
+
+      const seatData = Array.isArray(response)
+        ? response
+        : response?.seats ?? response?.data ?? [];
+
+      const currentSeats = seatData.slice(0, SEAT_LIMIT);
+      const previousSeats = previousOccupancy.current;
+
+      if (previousSeats !== null) {
+        currentSeats.forEach((seat, index) => {
+          const id = getSeatId(seat);
+          const oldSeat = previousSeats.find(
+            (item, oldIndex) =>
+              String(getSeatId(item) ?? oldIndex) ===
+              String(id ?? index)
+          );
+
+          if (!oldSeat) return;
+
+          const wasOccupied = isPhysicallyOccupied(oldSeat);
+          const nowOccupied = isPhysicallyOccupied(seat);
+
+          if (wasOccupied !== nowOccupied) {
+            const label = getSeatLabel(seat, index);
+
+            notify(
+              nowOccupied ? "Seat occupied" : "Seat is now empty",
+              `Seat ${label}: physical occupancy ${
+                nowOccupied ? "detected" : "no longer detected"
+              } by the ESP32.`,
+              nowOccupied ? "warning" : "success"
+            );
+          }
+        });
+      }
+
+      previousOccupancy.current = currentSeats;
+      setSeats(currentSeats);
+      setLastUpdated(new Date());
+      setError("");
+    } catch (err) {
+      setError(
+        err?.message ||
+          "Unable to load seats. Check that the backend is running."
+      );
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    if (!user) {
+      previousOccupancy.current = null;
+      return;
+    }
+
+    refreshSeats();
+
+    const interval = setInterval(refreshSeats, REFRESH_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [user, refreshSeats]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) {
+        clearTimeout(toastTimer.current);
+      }
+    };
+  }, []);
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await login(email, password);
+
+      // Supports APIs that return either a user object or a
+      // response containing a user and/or an access token.
+      const loggedInUser =
+        result?.user ??
+        result?.data?.user ??
+        result?.data ??
+        result;
+
+      if (!loggedInUser) {
+        throw new Error("The login response did not contain user data.");
+      }
+
+      if (result?.access_token) {
+        localStorage.setItem("access_token", result.access_token);
+      } else if (result?.data?.access_token) {
+        localStorage.setItem(
+          "access_token",
+          result.data.access_token
+        );
+      }
+
+      localStorage.setItem("library_user", JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+      previousOccupancy.current = null;
+
+      notify("Welcome!", "You have logged in successfully.", "success");
+    } catch (err) {
+      setError(err?.message || "Login failed. Check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("library_user");
+    localStorage.removeItem("access_token");
+    setUser(null);
+    setSeats([]);
+    previousOccupancy.current = null;
+    setError("");
+    setToast(null);
+  }
+
+  async function handleReserve(seat) {
+    const seatId = getSeatId(seat);
+
+    if (seatId == null) {
+      setError("This seat does not have a valid ID.");
+      return;
+    }
+
+    if (isUnavailable(seat)) {
+      notify(
+        "Seat unavailable",
+        "This seat is occupied or already reserved.",
+        "warning"
+      );
+      return;
+    }
+
+    setBusySeat(seatId);
+    setError("");
+
+    try {
+      await reserveSeat(seatId);
+
+      notify(
+        "Seat reserved",
+        `Seat ${getSeatLabel(seat, 0)} was reserved successfully.`,
+        "success"
+      );
+
+      await refreshSeats();
+    } catch (err) {
+      setError(err?.message || "Unable to reserve this seat.");
+    } finally {
+      setBusySeat(null);
+    }
+  }
+
+  async function handleRelease(seat) {
+    const seatId = getSeatId(seat);
+
+    if (seatId == null) {
+      setError("This seat does not have a valid ID.");
+      return;
+    }
+
+    setBusySeat(seatId);
+    setError("");
+
+    try {
+      await releaseSeat(seatId);
+
+      notify(
+        "Reservation released",
+        `Seat ${getSeatLabel(seat, 0)} is no longer reserved by you.`,
+        "success"
+      );
+
+      await refreshSeats();
+    } catch (err) {
+      setError(err?.message || "Unable to release this reservation.");
+    } finally {
+      setBusySeat(null);
+    }
+  }
+
+  const occupiedCount = seats.filter(isPhysicallyOccupied).length;
+  const reservedCount = seats.filter(isReserved).length;
+  const availableCount = seats.filter(
+    (seat) => !isUnavailable(seat)
+  ).length;
+
+  if (!user) {
+    return (
+      <main className="login-page">
+        <section className="login-card">
+          <div className="brand-mark">SL</div>
+          <p className="eyebrow">SMART LIBRARY</p>
+          <h1>Welcome back</h1>
+          <p className="muted">
+            Sign in to view and reserve library seats.
+          </p>
+
+          {error && (
+            <div className="error-message" role="alert">
+              {error}
+            </div>
+          )}
+
+          <form className="login-form" onSubmit={handleLogin}>
+            <label htmlFor="email">Email address</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
+            />
+
+            <button
+              className="primary-button login-button"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+
+          <p className="login-footnote">
+            Smart seating powered by ESP32 occupancy monitoring
+          </p>
+        </section>
+
+        {toast && (
+          <Toast
+            toast={toast}
+            onDismiss={() => setToast(null)}
+          />
+        )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-mark small-mark">SL</div>
+          <div>
+            <strong>Smart Library</strong>
+            <span>Seat reservation system</span>
+          </div>
+        </div>
+
+        <div className="user-area">
+          <div className="user-avatar">
+            {(user.name ?? user.username ?? user.email ?? "U")
+              .charAt(0)
+              .toUpperCase()}
+          </div>
+          <div className="user-details">
+            <strong>{user.name ?? user.username ?? "Library user"}</strong>
+            <span>{user.email ?? ""}</span>
+          </div>
+          <button className="secondary-button" onClick={handleLogout}>
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <section className="dashboard">
+        <div className="welcome-row">
+          <div>
+            <p className="eyebrow">YOUR LIBRARY DASHBOARD</p>
+            <h1>Find your seat.</h1>
+            <p className="muted">
+              Check live occupancy and manage your reservation.
+            </p>
+          </div>
+
+          <button
+            className="secondary-button refresh-button"
+            onClick={refreshSeats}
+          >
+            ↻ Refresh seats
+          </button>
+        </div>
+
+        <section className="stats-grid" aria-label="Seat statistics">
+          <StatCard
+            label="Total seats shown"
+            value={seats.length}
+            detail="Monitored seats"
+          />
+          <StatCard
+            label="Available"
+            value={availableCount}
+            detail="Ready to reserve"
+            tone="green"
+          />
+          <StatCard
+            label="Physically occupied"
+            value={occupiedCount}
+            detail="Reported by ESP32"
+            tone="orange"
+          />
+          <StatCard
+            label="Reserved"
+            value={reservedCount}
+            detail="Reservation records"
+            tone="blue"
+          />
+        </section>
+
+        {error && (
+          <div className="error-message dashboard-error" role="alert">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              aria-label="Dismiss error"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <div className="content-grid">
+          <section className="panel seats-panel">
+            <div className="panel-heading">
+              <div>
+                <h2>Seat availability</h2>
+                <p className="muted">
+                  Live updates every {REFRESH_INTERVAL / 1000} seconds
+                </p>
+              </div>
+              <span className="live-indicator">
+                <span className="live-dot" />
+                Monitoring
+              </span>
+            </div>
+
+            <div className="legend">
+              <span><i className="legend-dot available-dot" /> Available</span>
+              <span><i className="legend-dot occupied-dot" /> Occupied</span>
+              <span><i className="legend-dot reserved-dot" /> Reserved</span>
+            </div>
+
+            {seats.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">▦</div>
+                <h3>No seats found</h3>
+                <p>
+                  The API returned no seats. Check your backend and seat
+                  records, then refresh.
+                </p>
+                <button className="primary-button" onClick={refreshSeats}>
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <div className="seat-grid">
+                {seats.map((seat, index) => {
+                  const seatId = getSeatId(seat);
+                  const occupied = isPhysicallyOccupied(seat);
+                  const reserved = isReserved(seat);
+                  const unavailable = isUnavailable(seat);
+                  const mine =
+                    user.id != null &&
+                    String(seat.user_id) === String(user.id);
+
+                  let status = "Available";
+                  let statusClass = "available";
+
+                  if (occupied) {
+                    status = "Occupied";
+                    statusClass = "occupied";
+                  } else if (reserved) {
+                    status = mine ? "Reserved by you" : "Reserved";
+                    statusClass = "reserved";
+                  }
+
+                  return (
+                    <article
+                      className={`seat-card seat-${statusClass}`}
+                      key={seatId ?? index}
+                    >
+                      <div className="seat-card-top">
+                        <span className="seat-number">
+                          Seat {getSeatLabel(seat, index)}
+                        </span>
+                        <span className={`status-pill ${statusClass}`}>
+                          {status}
+                        </span>
+                      </div>
+
+                      <div className="seat-illustration" aria-hidden="true">
+                        <div className="chair-back" />
+                        <div className="chair-seat" />
+                        <div className="chair-leg left-leg" />
+                        <div className="chair-leg right-leg" />
+                      </div>
+
+                      <p className="seat-description">
+                        {occupied
+                          ? "Presence detected by sensor"
+                          : reserved
+                            ? "This seat has a reservation"
+                            : "Ready for your next study session"}
+                      </p>
+
+                      {mine ? (
+                        <button
+                          className="secondary-button seat-action"
+                          disabled={busySeat === seatId}
+                          onClick={() => handleRelease(seat)}
+                        >
+                          {busySeat === seatId
+                            ? "Processing..."
+                            : "Release reservation"}
+                        </button>
+                      ) : (
+                        <button
+                          className="primary-button seat-action"
+                          disabled={unavailable || busySeat === seatId}
+                          onClick={() => handleReserve(seat)}
+                        >
+                          {busySeat === seatId
+                            ? "Processing..."
+                            : unavailable
+                              ? "Unavailable"
+                              : "Reserve seat"}
+                        </button>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="last-updated">
+              <span className="live-dot" />
+              {lastUpdated
+                ? `Last updated at ${lastUpdated.toLocaleTimeString()}`
+                : "Waiting for the first update..."}
+            </div>
+          </section>
+
+          <aside className="panel activity-panel">
+            <div className="panel-heading">
+              <div>
+                <h2>Recent activity</h2>
+                <p className="muted">Your latest notifications</p>
+              </div>
+              <span className="activity-count">{notifications.length}</span>
+            </div>
+
+            {notifications.length === 0 ? (
+              <div className="activity-empty">
+                <span className="activity-icon">◷</span>
+                <p>No activity yet.</p>
+                <span>Seat and reservation updates will appear here.</span>
+              </div>
+            ) : (
+              <div className="activity-list">
+                {notifications.map((item) => (
+                  <article className="activity-item" key={item.id}>
+                    <span className={`activity-marker ${item.type}`} />
+                    <div className="activity-copy">
+                      <strong>{item.title}</strong>
+                      <p>{item.message}</p>
+                      <time>{item.time}</time>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            <div className="sensor-note">
+              <div className="sensor-icon">⌁</div>
+              <div>
+                <strong>ESP32 sensor monitoring</strong>
+                <p>
+                  Physical occupancy is refreshed from the backend. The
+                  first successful fetch establishes the baseline; alerts
+                  appear when occupancy changes on subsequent fetches.
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <footer className="app-footer">
+          <span>Smart Library</span>
+          <span>Seat monitoring and reservations</span>
+        </footer>
+      </section>
+
+      {toast && (
+        <Toast toast={toast} onDismiss={() => setToast(null)} />
+      )}
+    </main>
+  );
+}
+
+function StatCard({ label, value, detail, tone = "" }) {
+  return (
+    <article className={`stat-card ${tone}`}>
+      <span className="stat-label">{label}</span>
+      <strong className="stat-value">{value}</strong>
+      <span className="stat-detail">{detail}</span>
+    </article>
+  );
+}
+
+function Toast({ toast, onDismiss }) {
+  return (
+    <div
+      className={`toast-notification toast-${toast.type}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="toast-symbol">
+        {toast.type === "success"
+          ? "✓"
+          : toast.type === "warning"
+            ? "!"
+            : "i"}
+      </span>
+      <div className="toast-copy">
+        <strong>{toast.title}</strong>
+        <p>{toast.message}</p>
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss notification"
+        onClick={onDismiss}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
 
 export default App;
