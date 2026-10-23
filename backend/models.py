@@ -36,5 +36,10 @@ class Seat(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     seat_number = Column(String, unique=True, nullable=False)
-    occupied = Column(Boolean, default=False)
+
+    # Physical occupancy detected by the sensor
+    physically_occupied = Column(Boolean, default=False, nullable=False)
+
+    # Reservation information
+    is_reserved = Column(Boolean, default=False, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)

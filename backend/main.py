@@ -39,7 +39,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -522,20 +524,15 @@ def get_seats(
 
 
     return [
-
-        {
-            "id": seat.id,
-
-            "seat_number": seat.seat_number,
-
-            "occupied": seat.occupied,
-
-            "user_id": seat.user_id
-        }
-
-        for seat in seats
-
-    ]
+    {
+        "id": seat.id,
+        "seat_number": seat.seat_number,
+        "physically_occupied": seat.physically_occupied,
+        "is_reserved": seat.is_reserved,
+        "user_id": seat.user_id,
+    }
+    for seat in seats
+]
 
 
 # =========================================================
@@ -548,52 +545,57 @@ def reserve_seat(
     request: SeatReserveRequest,
     db: Session = Depends(get_db)
 ):
-
+    # Find the seat
     seat = db.query(Seat).filter(
         Seat.id == seat_id
     ).first()
 
-
     if not seat:
-
         raise HTTPException(
             status_code=404,
             detail="Seat not found"
         )
 
-
-    if seat.occupied:
-
+    # Check physical occupancy
+    if seat.physically_occupied:
         raise HTTPException(
             status_code=400,
-            detail="Seat is already occupied"
+            detail="Seat is physically occupied"
         )
 
+    # Check reservation status
+    if seat.is_reserved:
+        raise HTTPException(
+            status_code=400,
+            detail="Seat is already reserved"
+        )
 
+    # Verify the user
     user = db.query(User).filter(
         User.id == request.user_id
     ).first()
 
-
     if not user:
-
         raise HTTPException(
             status_code=404,
             detail="User not found"
         )
 
-
-    seat.occupied = True
-
+    # Reserve the seat without changing sensor occupancy
+    seat.is_reserved = True
     seat.user_id = request.user_id
-
 
     db.commit()
 
-
     return {
-        "message": "Seat reserved successfully"
+        "message": "Seat reserved successfully",
+        "seat_id": seat.id,
+        "seat_number": seat.seat_number,
+        "user_id": seat.user_id,
+        "is_reserved": seat.is_reserved,
+        "physically_occupied": seat.physically_occupied
     }
+
 
 
 # =========================================================
@@ -606,46 +608,38 @@ def release_seat(
     request: SeatReserveRequest,
     db: Session = Depends(get_db)
 ):
-
     seat = db.query(Seat).filter(
         Seat.id == seat_id
     ).first()
 
-
     if not seat:
-
         raise HTTPException(
             status_code=404,
             detail="Seat not found"
         )
 
-
-    if not seat.occupied:
-
+    if not seat.is_reserved:
         raise HTTPException(
             status_code=400,
-            detail="Seat is already free"
+            detail="Seat is not reserved"
         )
 
-
-    # Only the user who reserved it can release it
-
     if seat.user_id != request.user_id:
-
         raise HTTPException(
             status_code=403,
             detail="You cannot release this seat"
         )
 
-
-    seat.occupied = False
-
+    # Clear the reservation, not the physical sensor state.
+    seat.is_reserved = False
     seat.user_id = None
-
 
     db.commit()
 
-
     return {
-        "message": "Seat released successfully"
+        "message": "Seat released successfully",
+        "seat_id": seat.id,
+        "seat_number": seat.seat_number,
+        "is_reserved": seat.is_reserved,
+        "physically_occupied": seat.physically_occupied
     }
